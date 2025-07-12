@@ -48,6 +48,5 @@ Open your browser and go to http://127.0.0.1:5000
 
 🧑‍💻 Developed By
 Hriday Das
-🎓 B.Tech CSE | Python & ML Developer
-📸 Instagram: @hriday_1.618
-🔗 LinkedIn: Hriday Das
+🎓 B.Tech CSE | Full-Stack Web Developer/ Python & ML
+🔗 LinkedIn: https://www.linkedin.com/in/hriday-das-390a61286/
