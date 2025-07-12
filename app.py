@@ -7,6 +7,7 @@ import datetime
 from flask import Flask, request, jsonify, render_template
 from PIL import Image
 from io import BytesIO
+import shutil
 
 app = Flask(__name__)
 
@@ -19,7 +20,6 @@ os.makedirs(FACE_DIR, exist_ok=True)
 known_encodings = []
 known_names = []
 
-# Load all stored faces into memory
 def load_known_faces():
     global known_encodings, known_names
     known_encodings = []
@@ -32,29 +32,28 @@ def load_known_faces():
 
         for img_file in os.listdir(user_dir):
             path = os.path.join(user_dir, img_file)
-            image = face_recognition.load_image_file(path)
-            encodings = face_recognition.face_encodings(image)
+            try:
+                image = face_recognition.load_image_file(path)
+                encodings = face_recognition.face_encodings(image)
+                if encodings:
+                    known_encodings.append(encodings[0])
+                    known_names.append(name)
+            except Exception as e:
+                print(f"Error loading image {path}: {e}")
 
-            if encodings:
-                known_encodings.append(encodings[0])
-                known_names.append(name)
-
-# Load faces on start
+# Initial load
 load_known_faces()
 
-# Routes
 @app.route('/')
 def index():
     return render_template('index.html')
 
-# Register user with multiple images (with duplicate face check)
 @app.route('/register-multiple', methods=['POST'])
 def register_faces():
     data = request.get_json()
     name = data['name']
     images = data['images']
 
-    # Step 1: Check for duplicate face
     for image_data in images:
         try:
             img_data = base64.b64decode(image_data.split(',')[1])
@@ -63,7 +62,7 @@ def register_faces():
             face_encodings = face_recognition.face_encodings(np_img)
 
             if not face_encodings:
-                continue  # No face detected
+                continue
 
             new_encoding = face_encodings[0]
             matches = face_recognition.compare_faces(known_encodings, new_encoding, tolerance=0.45)
@@ -79,7 +78,7 @@ def register_faces():
         except Exception as e:
             return jsonify({"status": "error", "message": f"Image check failed: {e}"})
 
-    # Step 2: Save new images
+    # Save images
     user_folder = os.path.join(FACE_DIR, name)
     os.makedirs(user_folder, exist_ok=True)
 
@@ -95,7 +94,6 @@ def register_faces():
     load_known_faces()
     return jsonify({"status": "success", "message": f"{name} registered successfully."})
 
-# Start attendance
 @app.route('/start-attendance', methods=['POST'])
 def mark_attendance():
     data = request.get_json()
@@ -120,15 +118,28 @@ def mark_attendance():
                 first_match_index = matches.index(True)
                 name = known_names[first_match_index]
 
-                now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                df = pd.DataFrame([[name, now]], columns=["Name", "Timestamp"])
+                now = datetime.datetime.now()
+                now_str = now.strftime('%Y-%m-%d %H:%M:%S')
+                today = now.date()
+                new_entry = pd.DataFrame([[name, now_str]], columns=["Name", "Timestamp"])
 
                 if os.path.exists(EXCEL_FILE):
                     existing_df = pd.read_excel(EXCEL_FILE)
-                    combined_df = pd.concat([existing_df, df], ignore_index=True)
-                    combined_df.to_excel(EXCEL_FILE, index=False)
+                    existing_df['Timestamp'] = pd.to_datetime(existing_df['Timestamp'])
+                    already_marked = existing_df[
+                        (existing_df["Name"] == name) &
+                        (existing_df["Timestamp"].dt.date == today)
+                    ]
+                    if not already_marked.empty:
+                        return jsonify({
+                            "status": "duplicate",
+                            "message": f"{name} is already marked present today."
+                        })
+
+                    updated_df = pd.concat([existing_df, new_entry], ignore_index=True)
+                    updated_df.to_excel(EXCEL_FILE, index=False)
                 else:
-                    df.to_excel(EXCEL_FILE, index=False)
+                    new_entry.to_excel(EXCEL_FILE, index=False)
 
                 return jsonify({"status": "success", "message": f"Marked Present: {name}"})
 
@@ -142,6 +153,20 @@ def list_users():
     users = [d for d in os.listdir(FACE_DIR) if os.path.isdir(os.path.join(FACE_DIR, d))]
     return jsonify({"users": users})
 
+@app.route('/delete-user', methods=['POST'])
+def delete_user():
+    data = request.get_json()
+    name = data.get("name")
+    user_folder = os.path.join(FACE_DIR, name)
+
+    if os.path.exists(user_folder):
+        shutil.rmtree(user_folder)
+        load_known_faces()
+        return jsonify({"status": "success", "message": f"Deleted user: {name}"})
+    else:
+        return jsonify({"status": "error", "message": f"User not found: {name}"})
+
+
 if __name__ == '__main__':
-    load_known_faces()
     app.run(debug=True)
+
