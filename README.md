@@ -22,6 +22,14 @@ A web-based attendance system using real-time face recognition. Built with Pytho
 git clone https://github.com/your-username/your-repo.git
 cd your-repo
 
+2. Install Python 3.10
+Python version 3.10.0
+Installation Link: https://www.python.org/downloads/release/python-3100/
+
+3. Install Cmake
+cmake version 4.0.3
+Installation Link: https://cmake.org/download/
+
 2. Create Virtual Environment & Activate
 py -3.10 -m venv faceenv
 .\faceenv\Scripts\activate         # Windows
