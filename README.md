@@ -30,15 +30,15 @@ Installation Link: https://www.python.org/downloads/release/python-3100/
 cmake version 4.0.3
 Installation Link: https://cmake.org/download/
 
-2. Create Virtual Environment & Activate
+4. Create Virtual Environment & Activate
 py -3.10 -m venv faceenv
 .\faceenv\Scripts\activate         # Windows
 # source faceenv/bin/activate     # macOS/Linux
 
-3. Install Dependencies
+5. Install Dependencies
 pip install -r requirements.txt
 
-4. Run the App
+6. Run the App
 python app.py
 Open your browser and go to http://127.0.0.1:5000
 
