@@ -1,6 +1,6 @@
 #Smart Face Recognition Attendance System
 
-A web-based attendance system using real-time face recognition. Built with Python, Flask, Dlib (via `face_recognition`), and a custom HTML/JavaScript frontend.
+A web-based attendance system using real-time face recognition. Built with Python, Flask, Dlib (via `face_recognition`) and a custom HTML/JavaScript frontend.
 
 ---
 
